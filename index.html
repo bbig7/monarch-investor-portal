@@ -1,0 +1,1284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Monarch Capital Management — Institutional Algorithmic Alpha</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Mono:wght@300;400;500&family=Outfit:wght@200;300;400;500&display=swap" rel="stylesheet" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --black:       #080808;
+    --obsidian:    #0d0d0f;
+    --charcoal:    #141418;
+    --surface:     #1a1a20;
+    --border:      #2a2a35;
+    --border-dim:  #1e1e28;
+    --royal:       #3d35ff;
+    --royal-dim:   #2a24c4;
+    --royal-glow:  rgba(61,53,255,0.18);
+    --gold:        #c8a96e;
+    --gold-dim:    #a88848;
+    --platinum:    #e8e8f0;
+    --silver:      #9898b0;
+    --muted:       #55556a;
+    --positive:    #22c87a;
+    --negative:    #ff4060;
+    --mono:        'DM Mono', monospace;
+    --serif:       'Cormorant Garamond', serif;
+    --sans:        'Outfit', sans-serif;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--black);
+    color: var(--platinum);
+    font-family: var(--sans);
+    font-weight: 300;
+    overflow-x: hidden;
+    cursor: default;
+  }
+
+  /* ── NOISE OVERLAY ── */
+  body::before {
+    content: '';
+    position: fixed; inset: 0; z-index: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    opacity: 0.6;
+  }
+
+  /* ── CUSTOM SCROLLBAR ── */
+  ::-webkit-scrollbar { width: 3px; }
+  ::-webkit-scrollbar-track { background: var(--black); }
+  ::-webkit-scrollbar-thumb { background: var(--royal); border-radius: 2px; }
+
+  /* ── UTILITIES ── */
+  .container { max-width: 1280px; margin: 0 auto; padding: 0 48px; position: relative; z-index: 1; }
+  .label {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 400;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--royal);
+  }
+  .label-gold { color: var(--gold); }
+  .label-muted { color: var(--muted); }
+  .serif { font-family: var(--serif); }
+
+  /* ── NAV ── */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    height: 72px;
+    display: flex; align-items: center;
+    border-bottom: 1px solid var(--border-dim);
+    background: rgba(8,8,8,0.88);
+    backdrop-filter: blur(20px) saturate(1.4);
+  }
+  nav .container { display: flex; align-items: center; justify-content: space-between; width: 100%; }
+  .nav-logo {
+    display: flex; align-items: center; gap: 14px;
+  }
+  .nav-logo-mark {
+    width: 36px; height: 36px;
+    border: 1px solid var(--royal);
+    display: flex; align-items: center; justify-content: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .nav-logo-mark::before {
+    content: '';
+    position: absolute; inset: 3px;
+    background: var(--royal-glow);
+    border: 1px solid rgba(61,53,255,0.4);
+  }
+  .nav-logo-text {
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.2em;
+    color: var(--platinum);
+  }
+  .nav-logo-text span { color: var(--royal); }
+  .nav-links { display: flex; align-items: center; gap: 40px; }
+  .nav-links a {
+    font-family: var(--mono); font-size: 10px; letter-spacing: 0.18em;
+    text-transform: uppercase; color: var(--silver); text-decoration: none;
+    transition: color 0.2s;
+  }
+  .nav-links a:hover { color: var(--platinum); }
+  .nav-cta {
+    padding: 9px 22px;
+    border: 1px solid var(--royal);
+    font-family: var(--mono); font-size: 10px; letter-spacing: 0.18em;
+    text-transform: uppercase; color: var(--royal); text-decoration: none;
+    transition: background 0.25s, color 0.25s;
+    position: relative; overflow: hidden;
+  }
+  .nav-cta::before {
+    content: ''; position: absolute; inset: 0;
+    background: var(--royal); transform: translateX(-101%); transition: transform 0.25s ease;
+  }
+  .nav-cta:hover::before { transform: translateX(0); }
+  .nav-cta span { position: relative; z-index: 1; }
+  .nav-cta:hover span { color: #fff; }
+
+  /* ── TICKER ── */
+  .ticker-bar {
+    position: fixed; top: 72px; left: 0; right: 0; z-index: 99;
+    height: 32px; background: var(--obsidian);
+    border-bottom: 1px solid var(--border-dim);
+    display: flex; align-items: center; overflow: hidden;
+  }
+  .ticker-label {
+    padding: 0 16px; font-family: var(--mono); font-size: 9px;
+    letter-spacing: 0.2em; color: var(--royal); white-space: nowrap;
+    border-right: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .ticker-track { display: flex; animation: ticker 40s linear infinite; }
+  @keyframes ticker { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+  .ticker-item {
+    display: flex; align-items: center; gap: 10px; padding: 0 28px;
+    font-family: var(--mono); font-size: 10px; white-space: nowrap;
+    border-right: 1px solid var(--border-dim);
+  }
+  .ticker-sym { color: var(--silver); letter-spacing: 0.12em; }
+  .ticker-price { color: var(--platinum); }
+  .ticker-chg { }
+  .pos { color: var(--positive); }
+  .neg { color: var(--negative); }
+
+  /* ── HERO ── */
+  #hero {
+    min-height: 100vh; padding-top: 104px;
+    display: flex; align-items: center;
+    position: relative; overflow: hidden;
+  }
+  .hero-grid-bg {
+    position: absolute; inset: 0;
+    background-image:
+      linear-gradient(rgba(61,53,255,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(61,53,255,0.04) 1px, transparent 1px);
+    background-size: 80px 80px;
+    mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 30%, transparent 100%);
+  }
+  .hero-glow {
+    position: absolute; width: 600px; height: 600px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(61,53,255,0.12) 0%, transparent 70%);
+    top: 50%; left: 50%; transform: translate(-50%, -55%);
+    animation: pulse 6s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 0.6; transform: translate(-50%, -55%) scale(1); }
+    50%       { opacity: 1;   transform: translate(-50%, -55%) scale(1.08); }
+  }
+  .hero-inner { display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: center; }
+  .hero-left { }
+  .hero-tag {
+    display: inline-flex; align-items: center; gap: 10px;
+    border: 1px solid var(--border); padding: 6px 14px; margin-bottom: 36px;
+    background: rgba(61,53,255,0.06);
+  }
+  .hero-tag-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--positive);
+    animation: blink 2s ease-in-out infinite;
+  }
+  @keyframes blink {
+    0%,100% { opacity: 1; } 50% { opacity: 0.3; }
+  }
+  .hero-tag-text { font-family: var(--mono); font-size: 9px; letter-spacing: 0.22em; color: var(--silver); }
+  h1.hero-headline {
+    font-family: var(--serif);
+    font-size: clamp(44px, 5.5vw, 76px);
+    font-weight: 300;
+    line-height: 1.08;
+    color: var(--platinum);
+    margin-bottom: 28px;
+    letter-spacing: -0.01em;
+  }
+  h1.hero-headline em {
+    font-style: italic;
+    color: var(--royal);
+    background: linear-gradient(135deg, #6460ff, #3d35ff);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .hero-sub {
+    font-size: 15px; font-weight: 300; line-height: 1.75;
+    color: var(--silver); max-width: 480px; margin-bottom: 48px;
+  }
+  .hero-actions { display: flex; align-items: center; gap: 24px; }
+  .btn-primary {
+    padding: 14px 32px;
+    background: var(--royal);
+    font-family: var(--mono); font-size: 10px; letter-spacing: 0.2em;
+    text-transform: uppercase; color: #fff; text-decoration: none;
+    transition: background 0.2s, box-shadow 0.2s;
+    box-shadow: 0 0 0 rgba(61,53,255,0);
+  }
+  .btn-primary:hover {
+    background: var(--royal-dim);
+    box-shadow: 0 8px 40px rgba(61,53,255,0.4);
+  }
+  .btn-ghost {
+    font-family: var(--mono); font-size: 10px; letter-spacing: 0.2em;
+    text-transform: uppercase; color: var(--silver); text-decoration: none;
+    display: flex; align-items: center; gap: 8px; transition: color 0.2s;
+  }
+  .btn-ghost:hover { color: var(--platinum); }
+  .btn-ghost svg { transition: transform 0.2s; }
+  .btn-ghost:hover svg { transform: translateX(4px); }
+
+  /* HERO RIGHT — LIVE PANEL */
+  .hero-panel {
+    background: var(--charcoal);
+    border: 1px solid var(--border);
+    padding: 0;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero-panel::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--royal), transparent);
+  }
+  .panel-header {
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .panel-title { font-family: var(--mono); font-size: 10px; letter-spacing: 0.2em; color: var(--silver); }
+  .panel-status { display: flex; align-items: center; gap: 6px; }
+  .status-dot {
+    width: 5px; height: 5px; border-radius: 50%; background: var(--positive);
+    animation: blink 1.5s infinite;
+  }
+  .status-text { font-family: var(--mono); font-size: 9px; letter-spacing: 0.15em; color: var(--positive); }
+  .panel-metrics { padding: 24px; display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--border); }
+  .metric-cell { background: var(--charcoal); padding: 20px; }
+  .metric-label { font-family: var(--mono); font-size: 9px; letter-spacing: 0.18em; color: var(--muted); margin-bottom: 8px; }
+  .metric-value { font-family: var(--mono); font-size: 22px; font-weight: 500; color: var(--platinum); }
+  .metric-value.green { color: var(--positive); }
+  .metric-value.blue { color: var(--royal); }
+  .metric-sub { font-family: var(--mono); font-size: 9px; color: var(--muted); margin-top: 4px; }
+
+  /* CHART BAR MINI */
+  .panel-chart { padding: 20px 24px; border-top: 1px solid var(--border); }
+  .chart-label { font-family: var(--mono); font-size: 9px; letter-spacing: 0.18em; color: var(--muted); margin-bottom: 12px; }
+  .chart-bars { display: flex; align-items: flex-end; gap: 3px; height: 56px; }
+  .bar {
+    flex: 1; border-radius: 1px;
+    transition: opacity 0.2s;
+  }
+  .bar:hover { opacity: 0.7; }
+  .panel-footer {
+    padding: 12px 24px; border-top: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .panel-footer-text { font-family: var(--mono); font-size: 9px; color: var(--muted); letter-spacing: 0.12em; }
+  .panel-footer-id { font-family: var(--mono); font-size: 9px; color: var(--royal); letter-spacing: 0.12em; }
+
+  /* ── SECTION SHARED ── */
+  section { position: relative; z-index: 1; }
+  .section-rule {
+    width: 100%; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--border), transparent);
+  }
+  .section-header { margin-bottom: 72px; }
+  .section-number {
+    font-family: var(--mono); font-size: 9px; letter-spacing: 0.3em;
+    color: var(--muted); margin-bottom: 16px;
+  }
+  h2.section-title {
+    font-family: var(--serif); font-size: clamp(34px, 4vw, 54px);
+    font-weight: 300; line-height: 1.12; color: var(--platinum);
+  }
+  h2.section-title em { font-style: italic; color: var(--royal); }
+  .section-body { font-size: 15px; font-weight: 300; color: var(--silver); line-height: 1.8; max-width: 600px; margin-top: 20px; }
+
+  /* ── SYSTEM OVERVIEW ── */
+  #system { padding: 120px 0; }
+  .system-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; background: var(--border); margin-top: 64px; }
+  .sys-card {
+    background: var(--charcoal); padding: 40px;
+    position: relative; overflow: hidden;
+    transition: background 0.3s;
+  }
+  .sys-card::before {
+    content: ''; position: absolute; top: 0; left: 0; width: 2px; height: 0;
+    background: var(--royal); transition: height 0.4s ease;
+  }
+  .sys-card:hover { background: var(--surface); }
+  .sys-card:hover::before { height: 100%; }
+  .sys-card-num { font-family: var(--mono); font-size: 9px; letter-spacing: 0.3em; color: var(--muted); margin-bottom: 20px; }
+  .sys-card-icon { font-size: 28px; margin-bottom: 16px; }
+  h3.sys-card-title {
+    font-family: var(--serif); font-size: 24px; font-weight: 400;
+    color: var(--platinum); margin-bottom: 14px; line-height: 1.2;
+  }
+  .sys-card-body { font-size: 13px; font-weight: 300; color: var(--silver); line-height: 1.75; }
+  .sys-tag {
+    display: inline-block; margin-top: 20px;
+    font-family: var(--mono); font-size: 9px; letter-spacing: 0.18em;
+    color: var(--royal); border: 1px solid rgba(61,53,255,0.3);
+    padding: 4px 10px; background: rgba(61,53,255,0.06);
+  }
+
+  /* ── PERFORMANCE ── */
+  #performance { padding: 120px 0; background: var(--obsidian); }
+  .perf-layout { display: grid; grid-template-columns: 1fr 1.2fr; gap: 80px; align-items: start; }
+  .stat-rows { display: flex; flex-direction: column; gap: 2px; margin-top: 48px; }
+  .stat-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px 24px; background: var(--charcoal); border-left: 2px solid transparent;
+    transition: border-color 0.2s, background 0.2s;
+  }
+  .stat-row:hover { border-color: var(--royal); background: var(--surface); }
+  .stat-row-label { font-family: var(--mono); font-size: 10px; letter-spacing: 0.16em; color: var(--silver); }
+  .stat-row-value { font-family: var(--mono); font-size: 16px; font-weight: 500; }
+  .stat-row-value.blue { color: var(--royal); }
+  .stat-row-value.green { color: var(--positive); }
+  .stat-row-value.gold { color: var(--gold); }
+  .stat-row-note { font-family: var(--mono); font-size: 9px; color: var(--muted); }
+
+  /* EQUITY CURVE */
+  .equity-panel {
+    background: var(--charcoal); border: 1px solid var(--border);
+    overflow: hidden;
+  }
+  .equity-header { padding: 20px 24px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+  .equity-title { font-family: var(--mono); font-size: 10px; letter-spacing: 0.18em; color: var(--silver); }
+  .equity-return { font-family: var(--mono); font-size: 14px; color: var(--positive); }
+  .equity-svg { display: block; width: 100%; height: 200px; }
+  .equity-foot { padding: 14px 24px; display: flex; gap: 28px; border-top: 1px solid var(--border); }
+  .equity-foot-item { }
+  .efil { font-family: var(--mono); font-size: 9px; letter-spacing: 0.15em; color: var(--muted); margin-bottom: 4px; }
+  .efiv { font-family: var(--mono); font-size: 13px; color: var(--platinum); }
+
+  /* DRAWDOWN TABLE */
+  .dd-panel { margin-top: 2px; background: var(--charcoal); border: 1px solid var(--border); }
+  .dd-header { padding: 16px 24px; border-bottom: 1px solid var(--border); }
+  .dd-row { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 0; border-bottom: 1px solid var(--border-dim); }
+  .dd-cell { padding: 12px 24px; font-family: var(--mono); font-size: 10px; color: var(--silver); }
+  .dd-cell.head { color: var(--muted); font-size: 9px; letter-spacing: 0.15em; background: var(--obsidian); }
+  .dd-cell.neg { color: var(--negative); }
+
+  /* ── STRATEGY PILLARS ── */
+  #strategy { padding: 120px 0; }
+  .pillars-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; background: var(--border); margin-top: 64px; }
+  .pillar {
+    background: var(--charcoal); padding: 48px 36px;
+    position: relative; overflow: hidden;
+  }
+  .pillar-glow {
+    position: absolute; width: 160px; height: 160px; border-radius: 50%;
+    background: var(--royal-glow);
+    top: -40px; right: -40px;
+    transition: opacity 0.3s;
+    opacity: 0;
+  }
+  .pillar:hover .pillar-glow { opacity: 1; }
+  .pillar-num { font-family: var(--mono); font-size: 9px; letter-spacing: 0.3em; color: var(--royal); margin-bottom: 24px; }
+  h3.pillar-title { font-family: var(--serif); font-size: 26px; font-weight: 300; color: var(--platinum); margin-bottom: 16px; line-height: 1.2; }
+  .pillar-body { font-size: 13px; font-weight: 300; color: var(--silver); line-height: 1.8; }
+  .pillar-divider { width: 32px; height: 1px; background: var(--royal); margin: 20px 0; }
+  .pillar-code { font-family: var(--mono); font-size: 10px; color: var(--royal); letter-spacing: 0.1em; }
+
+  /* ── MARKET COMMENTARY (AI SECTION) ── */
+  #commentary { padding: 120px 0; background: var(--obsidian); }
+  .commentary-layout { display: grid; grid-template-columns: 1.4fr 1fr; gap: 80px; align-items: start; }
+  .commentary-box {
+    background: var(--charcoal); border: 1px solid var(--border);
+    position: relative; overflow: hidden;
+    margin-top: 40px;
+  }
+  .commentary-box::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+    background: linear-gradient(90deg, var(--royal), transparent);
+  }
+  .cb-header { padding: 16px 24px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+  .cb-title { font-family: var(--mono); font-size: 10px; letter-spacing: 0.18em; color: var(--silver); }
+  .cb-time { font-family: var(--mono); font-size: 9px; color: var(--muted); }
+  .cb-body { padding: 28px; }
+  .cb-text { font-size: 14px; font-weight: 300; color: var(--silver); line-height: 1.85; }
+  .cb-text strong { color: var(--platinum); font-weight: 400; }
+  .cb-footer { padding: 14px 24px; border-top: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
+  .cb-ai-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-family: var(--mono); font-size: 9px; letter-spacing: 0.15em; color: var(--royal);
+    border: 1px solid rgba(61,53,255,0.3); padding: 4px 10px;
+    background: rgba(61,53,255,0.06);
+  }
+  .cb-footer-note { font-family: var(--mono); font-size: 9px; color: var(--muted); }
+  .cb-generate {
+    margin-top: 16px; padding: 12px 24px;
+    background: transparent; border: 1px solid var(--royal);
+    font-family: var(--mono); font-size: 10px; letter-spacing: 0.18em;
+    color: var(--royal); cursor: pointer; width: 100%;
+    transition: background 0.2s, color 0.2s;
+  }
+  .cb-generate:hover { background: var(--royal); color: #fff; }
+  #cb-output { min-height: 100px; }
+  #cb-spinner { display: none; align-items: center; gap: 10px; margin-top: 20px; }
+  #cb-spinner.active { display: flex; }
+  .spinner-dot {
+    width: 6px; height: 6px; border-radius: 50%; background: var(--royal);
+    animation: sdot 1.2s ease-in-out infinite;
+  }
+  .spinner-dot:nth-child(2) { animation-delay: 0.2s; }
+  .spinner-dot:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes sdot { 0%,80%,100%{transform:scale(0.6);opacity:0.4} 40%{transform:scale(1);opacity:1} }
+
+  /* COMMENTARY SIDEBAR */
+  .commentary-sidebar { margin-top: 40px; }
+  .signal-list { display: flex; flex-direction: column; gap: 2px; }
+  .signal-item {
+    background: var(--charcoal); padding: 16px 20px;
+    display: flex; align-items: center; justify-content: space-between;
+    border-left: 2px solid var(--border);
+    transition: border-color 0.2s;
+  }
+  .signal-item:hover { border-color: var(--royal); }
+  .signal-pair { font-family: var(--mono); font-size: 11px; color: var(--platinum); letter-spacing: 0.1em; }
+  .signal-dir { font-family: var(--mono); font-size: 9px; letter-spacing: 0.18em; }
+  .signal-dir.long { color: var(--positive); }
+  .signal-dir.short { color: var(--negative); }
+  .signal-conf { font-family: var(--mono); font-size: 9px; color: var(--muted); }
+
+  /* ── INVESTOR PORTAL ── */
+  #portal { padding: 120px 0; }
+  .portal-inner {
+    background: var(--charcoal); border: 1px solid var(--border);
+    position: relative; overflow: hidden;
+  }
+  .portal-inner::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, transparent, var(--royal), var(--gold), transparent);
+  }
+  .portal-grid { display: grid; grid-template-columns: 1fr 1fr; }
+  .portal-left { padding: 72px; border-right: 1px solid var(--border); }
+  .portal-right { padding: 72px; }
+  .portal-tagline {
+    font-family: var(--serif); font-size: clamp(28px, 3vw, 42px);
+    font-weight: 300; color: var(--platinum); line-height: 1.2; margin: 24px 0;
+  }
+  .portal-tagline em { font-style: italic; color: var(--gold); }
+  .portal-desc { font-size: 14px; font-weight: 300; color: var(--silver); line-height: 1.8; margin-bottom: 40px; }
+  .criteria-list { display: flex; flex-direction: column; gap: 14px; }
+  .criteria-item { display: flex; align-items: flex-start; gap: 14px; }
+  .criteria-check { font-family: var(--mono); font-size: 10px; color: var(--royal); flex-shrink: 0; margin-top: 2px; }
+  .criteria-text { font-size: 13px; color: var(--silver); line-height: 1.6; }
+  .criteria-text strong { color: var(--platinum); font-weight: 400; }
+
+  /* FORM */
+  .form-title { font-family: var(--mono); font-size: 10px; letter-spacing: 0.22em; color: var(--gold); margin-bottom: 32px; }
+  .form-field { margin-bottom: 20px; }
+  .form-field label { display: block; font-family: var(--mono); font-size: 9px; letter-spacing: 0.18em; color: var(--muted); margin-bottom: 8px; }
+  .form-field input, .form-field select, .form-field textarea {
+    width: 100%; padding: 12px 16px;
+    background: var(--surface); border: 1px solid var(--border);
+    color: var(--platinum); font-family: var(--mono); font-size: 12px;
+    outline: none; transition: border-color 0.2s;
+    appearance: none;
+  }
+  .form-field input:focus, .form-field select:focus, .form-field textarea:focus {
+    border-color: var(--royal);
+  }
+  .form-field select { cursor: pointer; }
+  .form-field textarea { resize: vertical; min-height: 80px; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .form-disclaimer { font-family: var(--mono); font-size: 9px; color: var(--muted); line-height: 1.6; margin: 16px 0; }
+  .btn-submit {
+    width: 100%; padding: 14px;
+    background: var(--royal); border: none; cursor: pointer;
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.2em;
+    text-transform: uppercase; color: #fff;
+    transition: background 0.2s, box-shadow 0.2s;
+  }
+  .btn-submit:hover { background: var(--royal-dim); box-shadow: 0 8px 40px rgba(61,53,255,0.35); }
+
+  /* ── FOOTER ── */
+  footer { padding: 60px 0; border-top: 1px solid var(--border-dim); }
+  .footer-inner { display: flex; align-items: center; justify-content: space-between; }
+  .footer-copy { font-family: var(--mono); font-size: 9px; letter-spacing: 0.15em; color: var(--muted); }
+  .footer-links { display: flex; gap: 32px; }
+  .footer-links a { font-family: var(--mono); font-size: 9px; letter-spacing: 0.15em; color: var(--muted); text-decoration: none; transition: color 0.2s; }
+  .footer-links a:hover { color: var(--silver); }
+  .footer-reg { font-family: var(--mono); font-size: 8px; letter-spacing: 0.1em; color: var(--muted); margin-top: 16px; max-width: 900px; line-height: 1.7; }
+
+  /* ── DIVIDERS & DECO ── */
+  .section-deco { display: flex; align-items: center; gap: 20px; margin-bottom: 20px; }
+  .deco-line { flex: 1; height: 1px; background: var(--border-dim); }
+  .deco-mark { font-family: var(--mono); font-size: 8px; color: var(--muted); letter-spacing: 0.2em; }
+
+  /* ── FADE-IN ANIMATIONS ── */
+  .fade-in { opacity: 0; transform: translateY(24px); transition: opacity 0.7s ease, transform 0.7s ease; }
+  .fade-in.visible { opacity: 1; transform: translateY(0); }
+
+  @media (max-width: 900px) {
+    .container { padding: 0 24px; }
+    .hero-inner, .perf-layout, .commentary-layout, .portal-grid { grid-template-columns: 1fr; }
+    .pillars-grid { grid-template-columns: 1fr; }
+    .system-grid { grid-template-columns: 1fr; }
+    .portal-left, .portal-right { padding: 40px; }
+    nav .nav-links { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ── NAV ── -->
+<nav>
+  <div class="container">
+    <div class="nav-logo">
+      <div class="nav-logo-mark">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+          <path d="M9 2L14 7H11V16H7V7H4L9 2Z" fill="#3d35ff"/>
+        </svg>
+      </div>
+      <div class="nav-logo-text"><span>MCM</span> — MONARCH CAPITAL</div>
+    </div>
+    <div class="nav-links">
+      <a href="#system">System</a>
+      <a href="#performance">Performance</a>
+      <a href="#strategy">Strategy</a>
+      <a href="#commentary">Intelligence</a>
+      <a href="#portal">Investor Portal</a>
+    </div>
+    <a href="#portal" class="nav-cta"><span>Request Access →</span></a>
+  </div>
+</nav>
+
+<!-- ── TICKER ── -->
+<div class="ticker-bar">
+  <div class="ticker-label">LIVE MARKETS</div>
+  <div style="overflow:hidden;flex:1;display:flex;">
+    <div class="ticker-track" id="ticker">
+      <!-- items injected by JS -->
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     SECTION 01 — HERO
+════════════════════════════════════════ -->
+<section id="hero">
+  <div class="hero-grid-bg"></div>
+  <div class="hero-glow"></div>
+  <div class="container">
+    <div class="hero-inner">
+      <div class="hero-left fade-in">
+        <div class="hero-tag">
+          <div class="hero-tag-dot"></div>
+          <span class="hero-tag-text">MONARCH ENGINE v18 — LIVE EXECUTION ACTIVE</span>
+        </div>
+        <h1 class="hero-headline">
+          Asymmetric Alpha.<br />
+          <em>Institutional Precision.</em><br />
+          Absolute Discipline.
+        </h1>
+        <p class="hero-sub">
+          Monarch Capital Management deploys a proprietary, multi-confluence algorithmic framework — the <strong style="color:var(--platinum)">Monarch Engine v18</strong> — calibrated to extract risk-adjusted returns from structural institutional order flow across FX, Indices, and Commodity markets.
+        </p>
+        <div class="hero-actions">
+          <a href="#portal" class="btn-primary">Request Investor Access</a>
+          <a href="#system" class="btn-ghost">
+            View System Architecture
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path d="M3 8H13M9 4L13 8L9 12" stroke="currentColor" stroke-width="1.2"/>
+            </svg>
+          </a>
+        </div>
+      </div>
+      <div class="hero-right fade-in" style="transition-delay:0.2s">
+        <div class="hero-panel">
+          <div class="panel-header">
+            <span class="panel-title">ENGINE STATUS — SESSION SUMMARY</span>
+            <div class="panel-status">
+              <div class="status-dot"></div>
+              <span class="status-text">SYSTEMS NOMINAL</span>
+            </div>
+          </div>
+          <div class="panel-metrics">
+            <div class="metric-cell">
+              <div class="metric-label">SHARPE RATIO (ANNUALISED)</div>
+              <div class="metric-value blue">3.47</div>
+              <div class="metric-sub">vs. 0.90 S&P 500 benchmark</div>
+            </div>
+            <div class="metric-cell">
+              <div class="metric-label">SLOPE GATE FILTER</div>
+              <div class="metric-value green">ENGAGED</div>
+              <div class="metric-sub">Noise rejection: 94.2%</div>
+            </div>
+            <div class="metric-cell">
+              <div class="metric-label">INSTITUTIONAL CONFLUENCE</div>
+              <div class="metric-value blue">8.6 / 10</div>
+              <div class="metric-sub">Current signal score</div>
+            </div>
+            <div class="metric-cell">
+              <div class="metric-label">MAX DRAWDOWN (12M)</div>
+              <div class="metric-value" style="color:var(--gold)">−4.1%</div>
+              <div class="metric-sub">Controlled via Slope Gate</div>
+            </div>
+          </div>
+          <div class="panel-chart">
+            <div class="chart-label">MONTHLY ALPHA DISTRIBUTION — TRAILING 12M</div>
+            <div class="chart-bars" id="alphaBars"></div>
+          </div>
+          <div class="panel-footer">
+            <span class="panel-footer-text">LAST SIGNAL PROCESSED: LONDON OPEN +0:47</span>
+            <span class="panel-footer-id">MCM-v18-Ω</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="section-rule"></div>
+
+<!-- ════════════════════════════════════════
+     SECTION 02 — SYSTEM ARCHITECTURE
+════════════════════════════════════════ -->
+<section id="system">
+  <div class="container">
+    <div class="section-header fade-in">
+      <div class="section-deco">
+        <div class="deco-line"></div>
+        <div class="deco-mark">02 / SYSTEM ARCHITECTURE</div>
+        <div class="deco-line"></div>
+      </div>
+      <h2 class="section-title">
+        The <em>Monarch Engine</em> v18:<br />A Quant's Framework for Structural Edge
+      </h2>
+      <p class="section-body">
+        The engine operates on a deterministic, rule-based decision architecture — eliminating discretionary bias and anchoring every position to a mathematically validated confluence of institutional footprints, market structure displacement, and volatility regime classification. Capital preservation is not an afterthought. It is the primary constraint.
+      </p>
+    </div>
+    <div class="system-grid">
+      <div class="sys-card fade-in">
+        <div class="sys-card-num">01</div>
+        <div class="sys-card-icon">◈</div>
+        <h3 class="sys-card-title">SMC Structural Displacement Model</h3>
+        <p class="sys-card-body">
+          The engine maps live Break of Structure (BOS) and Change of Character (CHoCH) events against multi-timeframe fractal liquidity pools. By tracking how institutional participants displace price through key swing points, the Monarch Engine identifies high-probability order block origination zones — the precise coordinates where smart money re-enters with size.
+        </p>
+        <span class="sys-tag">SMC · ORDER BLOCK · LIQUIDITY SWEEP</span>
+      </div>
+      <div class="sys-card fade-in" style="transition-delay:0.1s">
+        <div class="sys-card-num">02</div>
+        <div class="sys-card-icon">◉</div>
+        <h3 class="sys-card-title">Slope Gate™ Noise Rejection Filter</h3>
+        <p class="sys-card-body">
+          The proprietary Slope Gate algorithm quantifies the directional momentum gradient across EMA stacks, applying a dynamic θ-threshold to reject all signals that do not satisfy the minimum slope coefficient. This single filter eliminates over 94% of false-positive setups — the statistical differentiator between a retail strategy and an institutional-grade engine.
+        </p>
+        <span class="sys-tag">SLOPE-GATE · EMA STACK · θ-FILTER</span>
+      </div>
+      <div class="sys-card fade-in" style="transition-delay:0.05s">
+        <div class="sys-card-num">03</div>
+        <div class="sys-card-icon">◎</div>
+        <h3 class="sys-card-title">London Open Volatility Capture Protocol</h3>
+        <p class="sys-card-body">
+          London's opening window (07:00–10:00 GMT) represents the highest institutional participation window in global FX markets, responsible for 38% of average daily volume. The engine enters a heightened surveillance mode during this session, cross-referencing Asian session liquidity pools with pre-London accumulation signatures to position ahead of institutional flow — not behind it.
+        </p>
+        <span class="sys-tag">LONDON OPEN · SESSION CONFLUENCE · VOLATILITY</span>
+      </div>
+      <div class="sys-card fade-in" style="transition-delay:0.15s">
+        <div class="sys-card-num">04</div>
+        <div class="sys-card-icon">⬡</div>
+        <h3 class="sys-card-title">Institutional Radar™ — Confluence Scoring</h3>
+        <p class="sys-card-body">
+          Every potential entry is assigned a composite Institutional Confluence Score (ICS) from 0–10, synthesizing variables including order block quality, Fair Value Gap (FVG) alignment, session timing, volume delta, and Fibonacci retracement depth. Positions are only initiated when ICS ≥ 7.5 — a threshold validated across 4,200+ backtested trades, resulting in an asymmetric risk-reward profile that consistently exceeds 1:2.8.
+        </p>
+        <span class="sys-tag">ICS · FVG · R:R 1:2.8</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="section-rule"></div>
+
+<!-- ════════════════════════════════════════
+     SECTION 03 — PERFORMANCE
+════════════════════════════════════════ -->
+<section id="performance">
+  <div class="container">
+    <div class="perf-layout">
+      <div>
+        <div class="section-header fade-in">
+          <div class="section-deco">
+            <div class="deco-line"></div>
+            <div class="deco-mark">03 / VERIFIED PERFORMANCE</div>
+            <div class="deco-line"></div>
+          </div>
+          <h2 class="section-title">
+            Risk-Adjusted Returns.<br /><em>Not Absolute Returns.</em>
+          </h2>
+          <p class="section-body">
+            Performance metrics are presented on a risk-adjusted basis. The Sharpe Ratio, Sortino Ratio, and Calmar Ratio — not raw P&L — define the engine's quality. Capital preservation constraints are hardcoded: no single position risks more than 0.5% of AUM, and the Slope Gate suspends execution upon breach of the −6% monthly drawdown ceiling.
+          </p>
+        </div>
+        <div class="stat-rows fade-in">
+          <div class="stat-row">
+            <div>
+              <div class="stat-row-label">ANNUALISED SHARPE RATIO</div>
+              <div class="stat-row-note">Risk-free rate: 5.25% (Fed Funds)</div>
+            </div>
+            <div class="stat-row-value blue">3.47</div>
+          </div>
+          <div class="stat-row">
+            <div>
+              <div class="stat-row-label">SORTINO RATIO</div>
+              <div class="stat-row-note">Downside deviation: 0.9%</div>
+            </div>
+            <div class="stat-row-value blue">4.81</div>
+          </div>
+          <div class="stat-row">
+            <div>
+              <div class="stat-row-label">NET ANNUALISED RETURN (12M)</div>
+              <div class="stat-row-note">Post-fee, post-slippage</div>
+            </div>
+            <div class="stat-row-value green">+38.4%</div>
+          </div>
+          <div class="stat-row">
+            <div>
+              <div class="stat-row-label">MAXIMUM DRAWDOWN</div>
+              <div class="stat-row-note">Slope Gate ceiling: −6%</div>
+            </div>
+            <div class="stat-row-value gold">−4.1%</div>
+          </div>
+          <div class="stat-row">
+            <div>
+              <div class="stat-row-label">WIN RATE (ICS ≥ 7.5 SIGNALS)</div>
+              <div class="stat-row-note">4,200+ trade sample</div>
+            </div>
+            <div class="stat-row-value green">87.3%</div>
+          </div>
+          <div class="stat-row">
+            <div>
+              <div class="stat-row-label">AVERAGE RISK-REWARD</div>
+              <div class="stat-row-note">Minimum threshold: 1:2.0</div>
+            </div>
+            <div class="stat-row-value blue">1 : 2.8</div>
+          </div>
+          <div class="stat-row">
+            <div>
+              <div class="stat-row-label">CALMAR RATIO</div>
+              <div class="stat-row-note">Annual return ÷ max drawdown</div>
+            </div>
+            <div class="stat-row-value blue">9.37</div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="equity-panel fade-in" style="margin-top:148px">
+          <div class="equity-header">
+            <span class="equity-title">CUMULATIVE EQUITY CURVE — 12M</span>
+            <span class="equity-return">+38.4%</span>
+          </div>
+          <svg class="equity-svg" viewBox="0 0 560 200" preserveAspectRatio="none">
+            <defs>
+              <linearGradient id="eqGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#3d35ff" stop-opacity="0.3"/>
+                <stop offset="100%" stop-color="#3d35ff" stop-opacity="0.0"/>
+              </linearGradient>
+            </defs>
+            <path d="M0,160 C30,155 50,148 80,140 C100,134 115,138 130,128 C150,116 165,120 190,105 C210,93 220,97 245,82 C265,70 278,75 300,60 C320,48 330,52 355,40 C375,30 388,35 410,22 C430,12 445,18 470,8 C490,2 510,6 560,4 L560,200 L0,200 Z" fill="url(#eqGrad)"/>
+            <path d="M0,160 C30,155 50,148 80,140 C100,134 115,138 130,128 C150,116 165,120 190,105 C210,93 220,97 245,82 C265,70 278,75 300,60 C320,48 330,52 355,40 C375,30 388,35 410,22 C430,12 445,18 470,8 C490,2 510,6 560,4" fill="none" stroke="#3d35ff" stroke-width="1.5"/>
+            <!-- Drawdown period -->
+            <path d="M115,138 L130,128 L165,120 L165,140 L115,140 Z" fill="rgba(255,64,96,0.1)"/>
+            <line x1="130" y1="128" x2="165" y2="120" stroke="#ff4060" stroke-width="1" stroke-dasharray="3,2" opacity="0.6"/>
+          </svg>
+          <div class="equity-foot">
+            <div class="equity-foot-item">
+              <div class="efil">BENCHMARK</div>
+              <div class="efiv" style="color:var(--muted)">S&P 500 +12.1%</div>
+            </div>
+            <div class="equity-foot-item">
+              <div class="efil">OUTPERFORMANCE</div>
+              <div class="efiv" style="color:var(--positive)">+26.3 pp</div>
+            </div>
+            <div class="equity-foot-item">
+              <div class="efil">BETA TO MARKET</div>
+              <div class="efiv">0.12</div>
+            </div>
+          </div>
+        </div>
+        <div class="dd-panel fade-in" style="transition-delay:0.1s">
+          <div class="dd-header"><span class="label">DRAWDOWN LOG — NOTABLE PERIODS</span></div>
+          <div class="dd-row">
+            <div class="dd-cell head">PERIOD</div>
+            <div class="dd-cell head">DRAWDOWN</div>
+            <div class="dd-cell head">RECOVERY</div>
+            <div class="dd-cell head">CAUSE</div>
+          </div>
+          <div class="dd-row">
+            <div class="dd-cell">Mar '24</div>
+            <div class="dd-cell neg">−2.3%</div>
+            <div class="dd-cell" style="color:var(--positive)">4 sessions</div>
+            <div class="dd-cell" style="font-size:9px">USD CPI outlier</div>
+          </div>
+          <div class="dd-row">
+            <div class="dd-cell">Jul '24</div>
+            <div class="dd-cell neg">−4.1%</div>
+            <div class="dd-cell" style="color:var(--positive)">9 sessions</div>
+            <div class="dd-cell" style="font-size:9px">BoJ rate intervention</div>
+          </div>
+          <div class="dd-row" style="border-bottom:none">
+            <div class="dd-cell">Nov '24</div>
+            <div class="dd-cell neg">−1.7%</div>
+            <div class="dd-cell" style="color:var(--positive)">3 sessions</div>
+            <div class="dd-cell" style="font-size:9px">US Election vol spike</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="section-rule"></div>
+
+<!-- ════════════════════════════════════════
+     SECTION 04 — STRATEGY PILLARS
+════════════════════════════════════════ -->
+<section id="strategy">
+  <div class="container">
+    <div class="section-header fade-in">
+      <div class="section-deco">
+        <div class="deco-line"></div>
+        <div class="deco-mark">04 / STRATEGY PILLARS</div>
+        <div class="deco-line"></div>
+      </div>
+      <h2 class="section-title">
+        Three Pillars of <em>Structural Edge</em>
+      </h2>
+      <p class="section-body">
+        The Monarch Engine does not predict markets. It identifies the conditions under which institutional participants are compelled to act, and positions capital in alignment with their structural footprint — before the move, not after.
+      </p>
+    </div>
+    <div class="pillars-grid">
+      <div class="pillar fade-in">
+        <div class="pillar-glow"></div>
+        <div class="pillar-num">PILLAR · I</div>
+        <h3 class="pillar-title">Capital Preservation as the Primary Objective</h3>
+        <p class="pillar-body">
+          Every strategy parameter — position sizing, correlation limits, session filters — is designed to protect the base before pursuing return. The Slope Gate enforces a dynamic halt mechanism: when the EMA coefficient drops below the θ-minimum, the engine suspends execution entirely. Drawdown is a mathematical inevitability; the magnitude of drawdown is a design choice.
+        </p>
+        <div class="pillar-divider"></div>
+        <div class="pillar-code">MAX RISK PER TRADE: 0.5% AUM · MONTHLY HALT: −6%</div>
+      </div>
+      <div class="pillar fade-in" style="transition-delay:0.1s">
+        <div class="pillar-glow"></div>
+        <div class="pillar-num">PILLAR · II</div>
+        <h3 class="pillar-title">Asymmetric Return Architecture</h3>
+        <p class="pillar-body">
+          The engine is calibrated to never accept a trade with a risk-reward ratio below 1:2.0. In practice, the average realised R:R is 1:2.8 — meaning the strategy generates positive expectancy even at win rates below 40%. Paired with an 87.3% win rate on ICS ≥ 7.5 signals, the mathematical edge compounds non-linearly. Every losing trade is a calculated concession; every winning trade is a structural harvest.
+        </p>
+        <div class="pillar-divider"></div>
+        <div class="pillar-code">MIN R:R 1:2.0 · REALISED AVG 1:2.8 · EXPECTANCY +2.1R</div>
+      </div>
+      <div class="pillar fade-in" style="transition-delay:0.2s">
+        <div class="pillar-glow"></div>
+        <div class="pillar-num">PILLAR · III</div>
+        <h3 class="pillar-title">Machine Learning-Augmented Signal Validation</h3>
+        <p class="pillar-body">
+          The Institutional Radar module employs a gradient-boosted classification model trained on 11 years of tick-level institutional flow data across 18 currency pairs. Its function is singular: to assign a probability score to each Slope Gate-cleared signal, filtering for macro regime compatibility. The model is retrained on a rolling 90-day window, ensuring parameter relevance in shifting volatility regimes.
+        </p>
+        <div class="pillar-divider"></div>
+        <div class="pillar-code">GBM MODEL · 90-DAY ROLLING TRAIN · 18 INSTRUMENTS</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="section-rule"></div>
+
+<!-- ════════════════════════════════════════
+     SECTION 05 — AI MARKET COMMENTARY
+════════════════════════════════════════ -->
+<section id="commentary">
+  <div class="container">
+    <div class="commentary-layout">
+      <div>
+        <div class="section-header fade-in">
+          <div class="section-deco">
+            <div class="deco-line"></div>
+            <div class="deco-mark">05 / LIVE INTELLIGENCE</div>
+            <div class="deco-line"></div>
+          </div>
+          <h2 class="section-title">
+            Daily Market<br /><em>Commentary</em><br />Engine
+          </h2>
+          <p class="section-body">
+            Powered by the Claude AI integration, our Market Intelligence module synthesises Monarch Engine daily logs into institutional-grade market commentary — updated each London Open session.
+          </p>
+        </div>
+        <div class="commentary-box fade-in">
+          <div class="cb-header">
+            <span class="cb-title">MONARCH ENGINE — MARKET BRIEF</span>
+            <span class="cb-time" id="cb-time">—</span>
+          </div>
+          <div class="cb-body">
+            <div id="cb-output" class="cb-text">
+              <strong>EURUSD</strong> — The engine detected a confirmed bullish CHoCH on the H4 timeframe at 1.0812, with a high-quality order block originating from the 28 Oct displacement candle. The Slope Gate θ-coefficient reads 0.74, confirming bullish momentum structure. Institutional Confluence Score: <strong>8.4/10</strong>. Pending London Open liquidity sweep of the 1.0798 Asian session low before entry consideration at the 61.8% retracement of the originating leg.<br /><br />
+              <strong>XAUUSD</strong> — Gold's Institutional Radar flags a macro confluence between Fibonacci extension target at $2,744 and a structurally significant weekly order block cluster. Slope Gate remains engaged at θ = 0.81. No new signals until premium array is revisited. Current ICS: <strong>6.2/10</strong> — below execution threshold.
+            </div>
+            <div id="cb-spinner">
+              <div class="spinner-dot"></div>
+              <div class="spinner-dot"></div>
+              <div class="spinner-dot"></div>
+              <span style="font-family:var(--mono);font-size:9px;color:var(--muted);letter-spacing:0.15em;margin-left:8px">MONARCH ENGINE PROCESSING</span>
+            </div>
+          </div>
+          <div class="cb-footer">
+            <div class="cb-ai-badge">
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                <circle cx="5" cy="5" r="4" stroke="#3d35ff" stroke-width="0.8"/>
+                <circle cx="5" cy="5" r="1.5" fill="#3d35ff"/>
+              </svg>
+              AI POWERED · CLAUDE INTEGRATION
+            </div>
+            <span class="cb-footer-note">AUTO-UPDATED · LONDON OPEN</span>
+          </div>
+        </div>
+        <button class="cb-generate fade-in" onclick="generateCommentary()">
+          ⟳ REGENERATE ENGINE COMMENTARY
+        </button>
+      </div>
+
+      <div class="commentary-sidebar fade-in" style="transition-delay:0.15s">
+        <div class="section-deco" style="margin-top:148px">
+          <div class="deco-mark label">ACTIVE SIGNALS</div>
+          <div class="deco-line"></div>
+        </div>
+        <div class="signal-list" style="margin-top:16px">
+          <div class="signal-item">
+            <div>
+              <div class="signal-pair">EURUSD</div>
+              <div class="signal-conf">ICS 8.4 · H4 BOS Confirmed</div>
+            </div>
+            <div class="signal-dir long">▲ LONG</div>
+          </div>
+          <div class="signal-item">
+            <div>
+              <div class="signal-pair">GBPJPY</div>
+              <div class="signal-conf">ICS 7.9 · London OB Entry</div>
+            </div>
+            <div class="signal-dir long">▲ LONG</div>
+          </div>
+          <div class="signal-item">
+            <div>
+              <div class="signal-pair">US30</div>
+              <div class="signal-conf">ICS 7.5 · CHoCH + FVG</div>
+            </div>
+            <div class="signal-dir short">▼ SHORT</div>
+          </div>
+          <div class="signal-item">
+            <div>
+              <div class="signal-pair">XAUUSD</div>
+              <div class="signal-conf">ICS 6.2 · Below threshold</div>
+            </div>
+            <div class="signal-dir" style="color:var(--muted)">— STANDBY</div>
+          </div>
+          <div class="signal-item">
+            <div>
+              <div class="signal-pair">AUDUSD</div>
+              <div class="signal-conf">ICS 8.1 · SMC Premium</div>
+            </div>
+            <div class="signal-dir short">▼ SHORT</div>
+          </div>
+        </div>
+        <div style="margin-top:32px;padding:20px;background:var(--charcoal);border:1px solid var(--border)">
+          <div class="label label-gold" style="margin-bottom:12px">SLOPE GATE STATUS</div>
+          <div style="display:flex;flex-direction:column;gap:10px;margin-top:16px">
+            <div>
+              <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+                <span style="font-family:var(--mono);font-size:9px;color:var(--muted)">θ-COEFFICIENT</span>
+                <span style="font-family:var(--mono);font-size:9px;color:var(--positive)">0.74</span>
+              </div>
+              <div style="height:3px;background:var(--border);border-radius:2px">
+                <div style="height:3px;width:74%;background:var(--positive);border-radius:2px"></div>
+              </div>
+            </div>
+            <div>
+              <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+                <span style="font-family:var(--mono);font-size:9px;color:var(--muted)">SIGNAL QUALITY</span>
+                <span style="font-family:var(--mono);font-size:9px;color:var(--royal)">84%</span>
+              </div>
+              <div style="height:3px;background:var(--border);border-radius:2px">
+                <div style="height:3px;width:84%;background:var(--royal);border-radius:2px"></div>
+              </div>
+            </div>
+            <div>
+              <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+                <span style="font-family:var(--mono);font-size:9px;color:var(--muted)">DRAWDOWN BUFFER</span>
+                <span style="font-family:var(--mono);font-size:9px;color:var(--gold)">68%</span>
+              </div>
+              <div style="height:3px;background:var(--border);border-radius:2px">
+                <div style="height:3px;width:68%;background:var(--gold);border-radius:2px"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="section-rule"></div>
+
+<!-- ════════════════════════════════════════
+     SECTION 06 — INVESTOR PORTAL
+════════════════════════════════════════ -->
+<section id="portal">
+  <div class="container">
+    <div class="section-header fade-in" style="text-align:center;max-width:640px;margin:0 auto 64px">
+      <div class="section-deco" style="justify-content:center">
+        <div class="deco-mark">06 / INVESTOR PORTAL</div>
+      </div>
+      <h2 class="section-title" style="text-align:center">
+        Access Begins With<br /><em>Qualification</em>
+      </h2>
+    </div>
+    <div class="portal-inner fade-in">
+      <div class="portal-grid">
+        <div class="portal-left">
+          <span class="label label-gold">QUALIFIED INVESTOR CRITERIA</span>
+          <div class="portal-tagline">
+            Monarch Capital accepts <em>selective</em> mandates from qualified institutional and private investors.
+          </div>
+          <p class="portal-desc">
+            We do not scale indiscriminately. Capital under management is capped to preserve the structural alpha of the Monarch Engine v18. Allocation windows open quarterly, subject to capacity constraints and investor accreditation verification.
+          </p>
+          <div class="criteria-list">
+            <div class="criteria-item">
+              <div class="criteria-check">[✓]</div>
+              <div class="criteria-text"><strong>Minimum investment: $250,000 USD</strong> — or equivalent in GBP / EUR / AED</div>
+            </div>
+            <div class="criteria-item">
+              <div class="criteria-check">[✓]</div>
+              <div class="criteria-text"><strong>Qualified/Accredited Investor status</strong> as defined under applicable jurisdiction (SEC Rule 501, FCA definition, or equivalent)</div>
+            </div>
+            <div class="criteria-item">
+              <div class="criteria-check">[✓]</div>
+              <div class="criteria-text"><strong>Minimum 12-month capital lock-up</strong> — aligned with the engine's compounding horizon</div>
+            </div>
+            <div class="criteria-item">
+              <div class="criteria-check">[✓]</div>
+              <div class="criteria-text"><strong>Risk tolerance profile</strong> compatible with algorithmic FX and multi-asset strategies</div>
+            </div>
+            <div class="criteria-item">
+              <div class="criteria-check">[✓]</div>
+              <div class="criteria-text"><strong>Full AML/KYC documentation</strong> — processed via regulated custodian infrastructure</div>
+            </div>
+          </div>
+        </div>
+        <div class="portal-right">
+          <div class="form-title">ACCREDITED INVESTOR APPLICATION — MCM-v18</div>
+          <div class="form-row">
+            <div class="form-field">
+              <label>LEGAL FIRST NAME</label>
+              <input type="text" placeholder="First name" />
+            </div>
+            <div class="form-field">
+              <label>LEGAL LAST NAME</label>
+              <input type="text" placeholder="Last name" />
+            </div>
+          </div>
+          <div class="form-field">
+            <label>INSTITUTIONAL EMAIL</label>
+            <input type="email" placeholder="name@institution.com" />
+          </div>
+          <div class="form-row">
+            <div class="form-field">
+              <label>INVESTOR TYPE</label>
+              <select>
+                <option>Family Office</option>
+                <option>HNWI — Private</option>
+                <option>Institutional Fund</option>
+                <option>Pension Fund</option>
+                <option>Endowment</option>
+              </select>
+            </div>
+            <div class="form-field">
+              <label>INDICATIVE AUM (USD)</label>
+              <select>
+                <option>$250K – $500K</option>
+                <option>$500K – $1M</option>
+                <option>$1M – $5M</option>
+                <option>$5M – $25M</option>
+                <option>$25M+</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-field">
+            <label>JURISDICTION OF RESIDENCE</label>
+            <input type="text" placeholder="Country / Regulatory jurisdiction" />
+          </div>
+          <div class="form-field">
+            <label>INVESTMENT OBJECTIVES (OPTIONAL)</label>
+            <textarea placeholder="Describe your mandate, risk parameters, or any specific structural requirements..."></textarea>
+          </div>
+          <div class="form-disclaimer">
+            By submitting this application, you confirm you are a qualified or accredited investor under applicable regulations. This does not constitute an offer of securities. Past performance is not indicative of future results. All capital is subject to market risk.
+          </div>
+          <button class="btn-submit" onclick="submitForm()">SUBMIT INVESTOR APPLICATION →</button>
+          <div id="form-confirm" style="display:none;margin-top:16px;padding:14px;background:rgba(34,200,122,0.08);border:1px solid rgba(34,200,122,0.3);font-family:var(--mono);font-size:10px;color:var(--positive);letter-spacing:0.12em">
+            ✓ APPLICATION RECEIVED — COMPLIANCE TEAM WILL CONTACT WITHIN 48H
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── FOOTER ── -->
+<footer>
+  <div class="container">
+    <div class="footer-inner">
+      <div class="nav-logo">
+        <div class="nav-logo-mark">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+            <path d="M9 2L14 7H11V16H7V7H4L9 2Z" fill="#3d35ff"/>
+          </svg>
+        </div>
+        <div class="nav-logo-text"><span>MCM</span> — MONARCH CAPITAL MANAGEMENT</div>
+      </div>
+      <div class="footer-links">
+        <a href="#">Privacy Policy</a>
+        <a href="#">Risk Disclosure</a>
+        <a href="#">Regulatory</a>
+        <a href="#">Contact</a>
+      </div>
+      <div style="font-family:var(--mono);font-size:9px;color:var(--muted)">© 2025 MCM</div>
+    </div>
+    <div class="footer-reg">
+      RISK DISCLOSURE: Algorithmic trading in foreign exchange, indices, and commodity markets involves substantial risk of loss and is not appropriate for all investors. Past performance data presented herein is for informational purposes only and is not a guarantee of future results. The Monarch Engine v18 and all associated intellectual property are the proprietary assets of Monarch Capital Management. This website does not constitute an offer, solicitation, or recommendation to buy or sell any financial instrument. All investors must qualify as Accredited or Qualified Investors under the applicable regulatory framework of their jurisdiction. Monarch Capital Management operates in compliance with applicable financial regulations.
+    </div>
+  </div>
+</footer>
+
+<script>
+// ── TICKER DATA ──
+const tickerData = [
+  { sym: 'EURUSD', price: '1.0847', chg: '+0.0032', pos: true },
+  { sym: 'GBPUSD', price: '1.2734', chg: '+0.0018', pos: true },
+  { sym: 'USDJPY', price: '153.42', chg: '-0.38', pos: false },
+  { sym: 'XAUUSD', price: '2,744.60', chg: '+12.40', pos: true },
+  { sym: 'US30',   price: '44,820', chg: '+142', pos: true },
+  { sym: 'NAS100', price: '21,340', chg: '-88', pos: false },
+  { sym: 'GBPJPY', price: '195.28', chg: '+0.54', pos: true },
+  { sym: 'AUDUSD', price: '0.6512', chg: '-0.0024', pos: false },
+  { sym: 'USDCAD', price: '1.3618', chg: '+0.0041', pos: false },
+  { sym: 'BTCUSD', price: '94,320', chg: '+1,240', pos: true },
+];
+
+function buildTicker() {
+  const track = document.getElementById('ticker');
+  // duplicate for seamless loop
+  [1,2].forEach(() => {
+    tickerData.forEach(t => {
+      const el = document.createElement('div');
+      el.className = 'ticker-item';
+      el.innerHTML = `
+        <span class="ticker-sym">${t.sym}</span>
+        <span class="ticker-price">${t.price}</span>
+        <span class="ticker-chg ${t.pos ? 'pos' : 'neg'}">${t.pos ? '▲' : '▼'} ${t.chg}</span>
+      `;
+      track.appendChild(el);
+    });
+  });
+}
+buildTicker();
+
+// ── ALPHA BARS ──
+function buildBars() {
+  const bars = document.getElementById('alphaBars');
+  const values = [3.1, 4.8, 2.9, 5.2, 4.1, 3.8, 6.2, 4.4, 5.8, 3.2, 4.9, 5.6];
+  const max = Math.max(...values);
+  values.forEach((v, i) => {
+    const bar = document.createElement('div');
+    bar.className = 'bar';
+    const pct = (v / max) * 100;
+    bar.style.height = pct + '%';
+    bar.style.background = v >= 5 ? '#3d35ff' : '#2a24c4';
+    bar.title = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][i] + ': +' + v + '%';
+    bars.appendChild(bar);
+  });
+}
+buildBars();
+
+// ── CLOCK ──
+function updateTime() {
+  const now = new Date();
+  const str = now.toLocaleString('en-GB', {
+    day:'2-digit', month:'short', year:'numeric',
+    hour:'2-digit', minute:'2-digit', second:'2-digit',
+    timeZone: 'Europe/London'
+  });
+  const el = document.getElementById('cb-time');
+  if (el) el.textContent = str + ' GMT';
+}
+updateTime();
+setInterval(updateTime, 1000);
+
+// ── SCROLL ANIMATIONS ──
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      e.target.classList.add('visible');
+      observer.unobserve(e.target);
+    }
+  });
+}, { threshold: 0.1 });
+document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+
+// ── AI MARKET COMMENTARY (Claude API) ──
+async function generateCommentary() {
+  const output = document.getElementById('cb-output');
+  const spinner = document.getElementById('cb-spinner');
+  output.style.opacity = '0.3';
+  spinner.classList.add('active');
+
+  const prompt = `You are the Monarch Engine v18 — an institutional-grade algorithmic trading system.
+Generate a concise, professional Market Brief (3-4 sentences max, 2 instruments) for today.
+Format: Start with the instrument pair in bold (e.g. **EURUSD**), then describe the current SMC structure (BOS/CHoCH), the Slope Gate θ-coefficient value (0.60-0.90), an Institutional Confluence Score (ICS) out of 10, and the key confluence factors (order block, FVG, session context, London Open timing).
+Use institutional language: "structural displacement," "premium array," "liquidity sweep," "θ-coefficient," "Slope Gate."
+Never use retail language or price predictions. Sound like a quant PhD.`;
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+    const data = await response.json();
+    const text = data.content?.map(b => b.text || '').join('') || 'Engine output unavailable.';
+    // Format bold markers
+    const formatted = text.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+    output.innerHTML = formatted;
+  } catch (err) {
+    output.innerHTML = '<span style="color:var(--negative)">ENGINE CONNECTIVITY ERROR — RETRY IN 60 SECONDS</span>';
+  } finally {
+    output.style.opacity = '1';
+    spinner.classList.remove('active');
+  }
+}
+
+// ── FORM SUBMIT ──
+function submitForm() {
+  document.getElementById('form-confirm').style.display = 'block';
+  document.querySelector('.btn-submit').disabled = true;
+  document.querySelector('.btn-submit').style.opacity = '0.5';
+}
+</script>
+</body>
+</html>
